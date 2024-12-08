@@ -52,6 +52,24 @@ class DatabaseService:
                 logger.error(e)
                 raise DatabaseInternalError
 
+    def get_currency_by_id(self, id_: int) -> dict:
+        with self.__connect() as conn:
+            cursor = conn.cursor()
+
+            query = f"""
+            SELECT * FROM currencies WHERE id = '{id_}';"""
+
+            try:
+                result = cursor.execute(query).fetchone()
+
+                if result is None:
+                    result = dict()
+
+                return result
+            except Exception as e:
+                logger.error(e)
+                raise DatabaseInternalError
+
     def get_currency_by_name(self, name: str) -> dict:
         with self.__connect() as conn:
             cursor = conn.cursor()
@@ -102,6 +120,57 @@ class DatabaseService:
             except sqlite3.IntegrityError as e:
                 logger.error(e)
                 raise UniqueError
+            except Exception as e:
+                logger.error(e)
+                raise DatabaseInternalError
+
+    def get_exchanges(self) -> list[dict]:
+        with self.__connect() as conn:
+            cursor = conn.cursor()
+
+            query = """
+            SELECT * FROM exchange_rates"""
+
+            try:
+                result = [dict(row) for row in cursor.execute(query).fetchall()]
+                return result
+            except Exception as e:
+                logger.error(e)
+                raise
+
+    def get_exchange(self, base_id: str, target_id: str) -> dict:
+        with self.__connect() as conn:
+            cursor = conn.cursor()
+
+            query = f"""
+            SELECT * FROM exchange_rates 
+            WHERE base_currency_id = '{base_id}' AND target_currency_id = '{target_id}';"""
+
+            try:
+                result = cursor.execute(query).fetchone()
+
+                if result is None:
+                    result = dict()
+
+                return result
+            except Exception as e:
+                logger.error(e)
+                raise DatabaseInternalError
+
+    def update_exchange(self, base_id: str, target_id: str, rate: float) -> dict:
+        with self.__connect() as conn:
+            cursor = conn.cursor()
+
+            query = f"""
+            UPDATE exchange_rates 
+            SET rate = {rate}
+            WHERE base_currency_id = '{base_id}' AND target_currency_id = '{target_id}'
+            RETURNING *;"""
+
+            try:
+                result = cursor.execute(query).fetchone()
+                conn.commit()
+                return dict(result)
             except Exception as e:
                 logger.error(e)
                 raise DatabaseInternalError

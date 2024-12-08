@@ -16,6 +16,8 @@ class CurrencyService:
         except DatabaseInternalError:
             raise HTTPException(status_code=500, detail="Database Error")
 
+        if len(db_rows) == 0:
+            return []
         currencies = [Currency(**row) for row in db_rows]
         return currencies
 
@@ -23,7 +25,6 @@ class CurrencyService:
     def add_currency_service(cls, currency: AddCurrencyRequest) -> Currency:
         try:
             inserted_row = TEST_DB.add_currency(currency=currency.dict())
-            print(inserted_row)
         except UniqueError:
             raise HTTPException(status_code=409, detail="Currency with this code already exists")
         except DatabaseInternalError:

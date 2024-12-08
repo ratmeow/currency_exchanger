@@ -1,29 +1,63 @@
 from src.db import TEST_DB
-from src.schemas import AddExchangeRateRequest, ExchangeRate, Currency, ExchangeRateDB, GetExchangeRateResponse
+from src.schemas import AddExchangeRateRequest, ExchangeRate, Currency, GetExchangeRateResponse, \
+    CalculateExchangeRequest, CalculateExchangeResponse
 from fastapi import HTTPException
 import logging
-from src.utils import check_string_is_all_alpha, UniqueError, DatabaseInternalError
+from src.utils import UniqueError, DatabaseInternalError, DatabaseNotFoundError, ExchangeError
 
 logger = logging.getLogger(__name__)
 
 
 class ExchangeRateService:
 
-    # @classmethod
-    # def get_currencies(cls) -> list[Currency]:
-    #     try:
-    #         db_rows = TEST_DB.get_currencies()
-    #     except DatabaseInternalError:
-    #         raise HTTPException(status_code=500, detail="Database Error")
-    #
-    #     currencies = [Currency(**row) for row in db_rows]
-    #     return currencies
+    @classmethod
+    def get_exchange_service(cls, base_code: str, target_code: str) -> GetExchangeRateResponse:
+        try:
+            base_currency, target_currency = cls.get_currency_pair_by_codes(base_code=base_code,
+                                                                            target_code=target_code)
+
+            db_row = TEST_DB.get_exchange(base_id=base_currency.id,
+                                          target_id=target_currency.id)
+
+            if len(db_row) == 0:
+                raise DatabaseNotFoundError
+
+            exchange = ExchangeRate(**db_row)
+            exchange_response = GetExchangeRateResponse(id=exchange.id,
+                                                        base_currency=base_currency,
+                                                        target_currency=target_currency,
+                                                        rate=exchange.rate)
+            return exchange_response
+
+        except DatabaseInternalError:
+            raise HTTPException(status_code=500, detail="Database Error")
+
+    @classmethod
+    def get_exchanges_service(cls) -> list[GetExchangeRateResponse]:
+        try:
+            db_rows = TEST_DB.get_exchanges()
+        except DatabaseInternalError:
+            raise HTTPException(status_code=500, detail="Database Error")
+
+        if len(db_rows) == 0:
+            return []
+
+        raw_exchanges = [ExchangeRate(**row) for row in db_rows]
+        exchanges_currencies = [cls.get_currency_pair_by_ids(base_id=ex.base_currency_id,
+                                                             target_id=ex.target_currency_id) for ex in raw_exchanges]
+        exchanges = [GetExchangeRateResponse(id=ex.id,
+                                             base_currency=currencies[0],
+                                             target_currency=currencies[1],
+                                             rate=ex.rate) for ex, currencies in
+                     zip(raw_exchanges, exchanges_currencies)]
+
+        return exchanges
 
     @classmethod
     def add_exchange_service(cls, exchange_data: AddExchangeRateRequest) -> GetExchangeRateResponse:
         try:
-            base_currency = Currency(**TEST_DB.get_currency_by_code(code=exchange_data.base_currency_code))
-            target_currency = Currency(**TEST_DB.get_currency_by_code(code=exchange_data.target_currency_code))
+            base_currency, target_currency = cls.get_currency_pair_by_codes(base_code=exchange_data.base_currency_code,
+                                                                            target_code=exchange_data.target_currency_code)
 
             exchange_to_db = ExchangeRate(base_currency_id=base_currency.id,
                                           target_currency_id=target_currency.id,
@@ -35,23 +69,109 @@ class ExchangeRateService:
         except DatabaseInternalError:
             raise HTTPException(status_code=500, detail="Database Error")
 
-        inserted_exchange = GetExchangeRateResponse(id=inserted_exchange.id,
-                                                    base_currency=base_currency,
-                                                    target_currency=target_currency,
-                                                    rate=inserted_exchange.rate)
-        return inserted_exchange
+        exchange = GetExchangeRateResponse(id=inserted_exchange.id,
+                                           base_currency=base_currency,
+                                           target_currency=target_currency,
+                                           rate=inserted_exchange.rate)
+        return exchange
 
-    # @classmethod
-    # def get_currency(cls, name: str) -> Currency:
-    #     if not check_string_is_all_alpha(string=name):
-    #         raise HTTPException(status_code=400, detail="Currency name has extra characters or digits")
-    #     try:
-    #         db_row = TEST_DB.get_currency(name=name.upper())
-    #     except DatabaseInternalError:
-    #         raise HTTPException(status_code=500, detail="Database Error")
-    #
-    #     if db_row is None:
-    #         raise HTTPException(status_code=404, detail="Currency Not Found")
-    #
-    #     currency = Currency(**db_row)
-    #     return currency
+    @classmethod
+    def update_exchange_service(cls, base_code: str, target_code: str, rate: float) -> GetExchangeRateResponse:
+        try:
+            base_currency, target_currency = cls.get_currency_pair_by_codes(base_code=base_code,
+                                                                            target_code=target_code)
+
+            raw_exchange = ExchangeRate(**TEST_DB.update_exchange(base_id=base_currency.id,
+                                                                  target_id=target_currency.id,
+                                                                  rate=rate))
+        except DatabaseInternalError:
+            raise HTTPException(status_code=500, detail="Database Error")
+
+        exchange = GetExchangeRateResponse(id=raw_exchange.id,
+                                           base_currency=base_currency,
+                                           target_currency=target_currency,
+                                           rate=raw_exchange.rate)
+        return exchange
+
+    @classmethod
+    def calculate_exchange_service(cls, exchange_data: CalculateExchangeRequest) -> CalculateExchangeResponse:
+        converted = cls._attempt_conversion(base_code=exchange_data.base_code,
+                                            target_code=exchange_data.target_code,
+                                            amount=exchange_data.amount)
+        if converted:
+            return converted
+
+        converted = cls._attempt_conversion(base_code=exchange_data.target_code,
+                                            target_code=exchange_data.base_code,
+                                            amount=exchange_data.amount,
+                                            invert_rate=True)
+        if converted:
+            return converted
+
+        return cls._convert_via_usd(base_code=exchange_data.target_code,
+                                    target_code=exchange_data.base_code,
+                                    amount=exchange_data.amount)
+
+    @classmethod
+    def _attempt_conversion(cls, base_code: str, target_code: str, amount: float, invert_rate: bool = False):
+        try:
+            exchange = cls.get_exchange_service(base_code=base_code,
+                                                target_code=target_code)
+
+            rate = 1 / exchange.rate if invert_rate else exchange.rate
+
+            return CalculateExchangeResponse(base_currency=exchange.base_currency,
+                                             target_currency=exchange.target_currency,
+                                             rate=exchange.rate,
+                                             amount=amount,
+                                             converted_amount=rate * amount)
+
+        except DatabaseNotFoundError:
+            logger.warning(f"Exchange rate like {base_code} -> {target_code} doesn't exist")
+            return None
+
+    @classmethod
+    def _convert_via_usd(cls, base_code: str, target_code: str, amount: float):
+        try:
+            usd_from = cls.get_exchange_service(base_code="USD",
+                                                target_code=base_code)
+            usd_to = cls.get_exchange_service(base_code="USD",
+                                              target_code=target_code)
+
+            return CalculateExchangeResponse(base_currency=usd_from.target_currency,
+                                             target_currency=usd_to.target_currency,
+                                             rate=usd_from.rate * usd_to.rate,
+                                             amount=amount,
+                                             converted_amount=(usd_from.rate * usd_to.rate) * amount)
+
+        except DatabaseNotFoundError:
+            logger.warning(f"There is no equivalent in dollars")
+            raise ExchangeError
+
+    @classmethod
+    def get_currency_pair_by_codes(cls, base_code: str, target_code: str) -> tuple[Currency, Currency]:
+        base_currency_data = TEST_DB.get_currency_by_code(code=base_code)
+        target_currency_data = TEST_DB.get_currency_by_code(code=target_code)
+
+        if len(base_currency_data) == 0:
+            raise HTTPException(status_code=404,
+                                detail=f"A currency with code [{base_code}] doesn't exist")
+
+        if len(target_currency_data) == 0:
+            raise HTTPException(status_code=404,
+                                detail=f"A currency with code [{target_code}] doesn't exist")
+
+        base_currency = Currency(**base_currency_data)
+        target_currency = Currency(**target_currency_data)
+
+        return base_currency, target_currency
+
+    @classmethod
+    def get_currency_pair_by_ids(cls, base_id: int, target_id: int) -> tuple[Currency, Currency]:
+        base_currency_data = TEST_DB.get_currency_by_id(id_=base_id)
+        target_currency_data = TEST_DB.get_currency_by_id(id_=target_id)
+
+        base_currency = Currency(**base_currency_data)
+        target_currency = Currency(**target_currency_data)
+
+        return base_currency, target_currency
