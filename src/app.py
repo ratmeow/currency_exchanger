@@ -1,9 +1,8 @@
 from fastapi import FastAPI
-from .endpoints import currencies_router, currency_router, exchange_router
+from .endpoints import currency_router, exchange_router
 
 app = FastAPI()
 
-app.include_router(currencies_router)
 app.include_router(currency_router)
 app.include_router(exchange_router)
 

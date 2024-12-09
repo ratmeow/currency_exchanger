@@ -28,11 +28,11 @@ class DatabaseService:
             SELECT * FROM currencies"""
 
             try:
-                result = [dict(row) for row in cursor.execute(query).fetchall()]
+                result = [dict(row) if row is not None else dict() for row in cursor.execute(query).fetchall()]
                 return result
             except Exception as e:
                 logger.error(e)
-                raise
+                raise DatabaseInternalError
 
     def add_currency(self, currency: dict) -> dict:
         with self.__connect() as conn:
@@ -47,7 +47,7 @@ class DatabaseService:
                 return dict(result)
             except sqlite3.IntegrityError as e:
                 logger.error(e)
-                raise UniqueError
+                raise UniqueError(message="Currency with this code already exist")
             except Exception as e:
                 logger.error(e)
                 raise DatabaseInternalError
@@ -119,7 +119,7 @@ class DatabaseService:
                 return dict(result)
             except sqlite3.IntegrityError as e:
                 logger.error(e)
-                raise UniqueError
+                raise UniqueError(message="A currency pair with this code already exists")
             except Exception as e:
                 logger.error(e)
                 raise DatabaseInternalError
@@ -132,11 +132,11 @@ class DatabaseService:
             SELECT * FROM exchange_rates"""
 
             try:
-                result = [dict(row) for row in cursor.execute(query).fetchall()]
+                result = [dict(row) if row is not None else dict() for row in cursor.execute(query).fetchall()]
                 return result
             except Exception as e:
                 logger.error(e)
-                raise
+                raise DatabaseInternalError
 
     def get_exchange(self, base_id: str, target_id: str) -> dict:
         with self.__connect() as conn:
@@ -148,11 +148,7 @@ class DatabaseService:
 
             try:
                 result = cursor.execute(query).fetchone()
-
-                if result is None:
-                    result = dict()
-
-                return result
+                return dict(result) if result is not None else dict()
             except Exception as e:
                 logger.error(e)
                 raise DatabaseInternalError
@@ -170,7 +166,7 @@ class DatabaseService:
             try:
                 result = cursor.execute(query).fetchone()
                 conn.commit()
-                return dict(result)
+                return dict(result) if result is not None else dict()
             except Exception as e:
                 logger.error(e)
                 raise DatabaseInternalError

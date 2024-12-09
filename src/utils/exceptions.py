@@ -1,13 +1,23 @@
-class UniqueError(Exception):
+from typing import Any
+
+
+class ServiceError(Exception):
+    def __init__(self, message: str = ""):
+        self.message = message
+
+
+class UniqueError(ServiceError):
     pass
 
 
-class DatabaseInternalError(Exception):
+class DatabaseInternalError(ServiceError):
+    def __init__(self):
+        super().__init__(message="Database Internal Error")
+
+
+class DatabaseNotFoundError(ServiceError):
     pass
 
 
-class DatabaseNotFoundError(Exception):
-    pass
-
-class ExchangeError(Exception):
+class ServiceValidationError(ServiceError):
     pass
