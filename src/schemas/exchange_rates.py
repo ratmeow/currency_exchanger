@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
 from .currency import Currency
+from src.utils import ServiceValidationError, ServiceHelper
 
 
 class ExchangeRate(BaseModel):
@@ -15,13 +16,18 @@ class AddExchangeRateRequest(BaseModel):
     target_currency_code: str = Field(alias="targetCurrencyCode")
     rate: float
 
-    @field_validator("base_currency_code")
-    def check_base_code(cls, value: str) -> str:
+    @field_validator("base_currency_code", "target_currency_code")
+    def check_code(cls, value: str) -> str:
+        if len(value) != 3:
+            raise ServiceValidationError(message=f"Currency code [{value}] must be 3 characters long")
+        if not ServiceHelper.check_string_is_all_alpha(value=value):
+            raise ServiceValidationError(message=f"Currency code [{value}] has extra characters or digits")
         return value.upper()
 
-    @field_validator("target_currency_code")
-    def check_target_code(cls, value: str) -> str:
-        return value.upper()
+    @field_validator("rate")
+    def check_rate(cls, value: float) -> float:
+        ServiceHelper.check_rate(value)
+        return value
 
 
 class GetExchangeRateResponse(BaseModel):

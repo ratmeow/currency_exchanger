@@ -28,6 +28,8 @@ async def add_currency_api(currency_data: AddCurrencyRequest) -> Currency:
     try:
         currency = CurrencyService.add_currency_service(currency=currency_data)
         return currency
+    except ServiceValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)
     except UniqueError as e:
         raise HTTPException(status_code=409, detail=e.message)
     except DatabaseInternalError as e:

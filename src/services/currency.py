@@ -1,7 +1,7 @@
 from src.db import TEST_DB
 from src.schemas import Currency, AddCurrencyRequest
 import logging
-from src.utils import check_string_is_all_alpha, ServiceValidationError, DatabaseNotFoundError
+from src.utils import ServiceHelper, ServiceValidationError, DatabaseNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class CurrencyService:
 
     @classmethod
     def get_currency_by_name_service(cls, name: str) -> Currency:
-        if not check_string_is_all_alpha(string=name):
+        if not ServiceHelper.check_string_is_all_alpha(value=name):
             raise ServiceValidationError(message="Currency name has extra characters or digits")
         db_row = TEST_DB.get_currency_by_name(name=name)
 
