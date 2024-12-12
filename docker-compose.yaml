@@ -2,15 +2,18 @@ version: '3.8'
 
 services:
   frontend:
-    image: nginx
+    build:
+      context: frontend/
+      dockerfile: Dockerfile
     container_name: frontend-nginx
     ports:
       - "80:80"
-    volumes:
-      - ./frontend:/usr/share/nginx/html
+
   backend:
     container_name: backend-fastapi
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
 
