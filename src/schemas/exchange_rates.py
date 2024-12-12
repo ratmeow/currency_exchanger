@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
 from .currency import Currency
-from src.utils import ServiceValidationError, ServiceHelper
+from src.utils import FieldValidator
 
 
 class ExchangeRate(BaseModel):
@@ -17,16 +17,14 @@ class AddExchangeRateRequest(BaseModel):
     rate: float
 
     @field_validator("base_currency_code", "target_currency_code")
-    def check_code(cls, value: str) -> str:
-        if len(value) != 3:
-            raise ServiceValidationError(message=f"Currency code [{value}] must be 3 characters long")
-        if not ServiceHelper.check_string_is_all_alpha(value=value):
-            raise ServiceValidationError(message=f"Currency code [{value}] has extra characters or digits")
+    def validate_code(cls, value: str) -> str:
+        FieldValidator.check_field_only_letters(value=value, field_name="code")
+        FieldValidator.check_length_match(value=value, field_name="code", length=3)
         return value.upper()
 
     @field_validator("rate")
-    def check_rate(cls, value: float) -> float:
-        ServiceHelper.check_rate(value)
+    def validate_rate(cls, value: float) -> float:
+        FieldValidator.check_field_not_negative(value=value, field_name="rate")
         return value
 
 
@@ -46,6 +44,11 @@ class CalculateExchangeRequest(BaseModel):
     target_code: str = Field(alias="to")
     amount: float = Field(alias="amount")
 
+    @field_validator("amount")
+    def validate_amount(cls, value: float) -> float:
+        FieldValidator.check_field_not_negative(value=value, field_name="amount")
+        return value
+
 
 class CalculateExchangeResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -55,3 +58,7 @@ class CalculateExchangeResponse(BaseModel):
     rate: float
     amount: float
     converted_amount: float = Field(alias="convertedAmount")
+
+    @field_validator("converted_amount")
+    def validate_converted_amount(cls, value: float) -> float:
+        return round(value, 2)

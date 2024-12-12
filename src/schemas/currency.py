@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator, Field, ConfigDict
-from src.utils import ServiceHelper, ServiceValidationError
+from src.utils import FieldValidator
 
 
 class Currency(BaseModel):
@@ -17,15 +17,19 @@ class AddCurrencyRequest(BaseModel):
     sign: str
 
     @field_validator("name")
-    def check_name(cls, value: str) -> str:
-        if not ServiceHelper.check_string_is_all_alpha(value=value):
-            raise ServiceValidationError(message="Currency name has extra characters or digits")
+    def validate_name(cls, value: str) -> str:
+        FieldValidator.check_empty_field(value=value, field_name="name")
+        FieldValidator.check_field_only_letters(value=value, field_name="name")
         return value.capitalize()
 
     @field_validator("code")
-    def check_code(cls, value: str) -> str:
-        if len(value) != 3:
-            raise ServiceValidationError(message=f"Currency code [{value}] must be 3 characters long")
-        if not ServiceHelper.check_string_is_all_alpha(value=value):
-            raise ServiceValidationError(message=f"Currency code [{value}] has extra characters or digits")
+    def validate_code(cls, value: str) -> str:
+        FieldValidator.check_empty_field(value=value, field_name="code")
+        FieldValidator.check_field_only_letters(value=value, field_name="code")
+        FieldValidator.check_length_match(value=value, field_name="code", length=3)
         return value.upper()
+
+    @field_validator("sign")
+    def validate_sign(cls, value: str) -> str:
+        FieldValidator.check_empty_field(value=value, field_name="sign")
+        return value

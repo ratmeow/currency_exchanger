@@ -1,9 +1,8 @@
-from src.db import TEST_DB
+from src.dao import db_service
 from src.schemas import AddExchangeRateRequest, ExchangeRate, Currency, GetExchangeRateResponse, \
     CalculateExchangeRequest, CalculateExchangeResponse
-from fastapi import HTTPException
 import logging
-from src.utils import UniqueError, DatabaseInternalError, DatabaseNotFoundError
+from src.utils import DatabaseInternalError, DatabaseNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,7 @@ class ExchangeRateService:
         base_currency, target_currency = cls._get_currency_pair_by_codes(base_code=base_code,
                                                                          target_code=target_code)
 
-        db_row = TEST_DB.get_exchange(base_id=base_currency.id,
+        db_row = db_service.get_exchange(base_id=base_currency.id,
                                       target_id=target_currency.id)
 
         if len(db_row) == 0:
@@ -31,7 +30,7 @@ class ExchangeRateService:
     @classmethod
     def get_all_exchanges_service(cls) -> list[GetExchangeRateResponse]:
         try:
-            db_rows = TEST_DB.get_exchanges()
+            db_rows = db_service.get_exchanges()
 
             if len(db_rows) == 0:
                 return []
@@ -60,7 +59,7 @@ class ExchangeRateService:
                                       target_currency_id=target_currency.id,
                                       rate=exchange_data.rate)
 
-        inserted_exchange = ExchangeRate(**TEST_DB.add_exchange(exchange=exchange_to_db.dict(exclude_none=True)))
+        inserted_exchange = ExchangeRate(**db_service.add_exchange(exchange=exchange_to_db.dict(exclude_none=True)))
 
         exchange = GetExchangeRateResponse(id=inserted_exchange.id,
                                            base_currency=base_currency,
@@ -73,7 +72,7 @@ class ExchangeRateService:
         base_currency, target_currency = cls._get_currency_pair_by_codes(base_code=base_code,
                                                                          target_code=target_code)
 
-        db_row = TEST_DB.update_exchange(base_id=base_currency.id,
+        db_row = db_service.update_exchange(base_id=base_currency.id,
                                          target_id=target_currency.id,
                                          rate=rate)
 
@@ -147,8 +146,8 @@ class ExchangeRateService:
     @classmethod
     def _get_currency_pair_by_codes(cls, base_code: str, target_code: str) -> tuple[Currency, Currency]:
 
-        base_currency_data = TEST_DB.get_currency_by_code(code=base_code)
-        target_currency_data = TEST_DB.get_currency_by_code(code=target_code)
+        base_currency_data = db_service.get_currency_by_code(code=base_code)
+        target_currency_data = db_service.get_currency_by_code(code=target_code)
 
         if len(base_currency_data) == 0:
             raise DatabaseNotFoundError(message=f"Currency [{base_code}] Not Found")
@@ -164,8 +163,8 @@ class ExchangeRateService:
     @classmethod
     def _get_currency_pair_by_ids(cls, base_id: int, target_id: int) -> tuple[Currency, Currency]:
         try:
-            base_currency_data = TEST_DB.get_currency_by_id(id_=base_id)
-            target_currency_data = TEST_DB.get_currency_by_id(id_=target_id)
+            base_currency_data = db_service.get_currency_by_id(id_=base_id)
+            target_currency_data = db_service.get_currency_by_id(id_=target_id)
 
             if len(base_currency_data) == 0:
                 raise DatabaseNotFoundError(message=f"Currency [{base_id}] Not Found")

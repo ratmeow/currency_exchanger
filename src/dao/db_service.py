@@ -1,6 +1,6 @@
 import sqlite3
+import os
 import logging
-from typing import Optional
 from src.utils import UniqueError, DatabaseInternalError
 
 logger = logging.getLogger(__name__)
@@ -10,6 +10,8 @@ class DatabaseService:
 
     def __init__(self, db_name: str):
         self.db_name = db_name
+        if not os.path.exists(f"src/{db_name}"):
+            self._init_db()
 
     def __connect(self):
         try:
@@ -171,5 +173,35 @@ class DatabaseService:
                 logger.error(e)
                 raise DatabaseInternalError
 
+    def _init_db(self):
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
 
-TEST_DB = DatabaseService("database.db")
+                cursor.execute("""PRAGMA foreign_keys = ON;""")
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS currencies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code VARCHAR,
+                full_name VARCHAR,
+                sign VARCHAR);""")
+
+                cursor.execute("""CREATE UNIQUE INDEX IF NOT EXISTS code_idx on currencies(code);""")
+
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS exchange_rates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                base_currency_id INTEGER,
+                target_currency_id INTEGER,
+                rate DECIMAL(6),
+                FOREIGN KEY(base_currency_id) REFERENCES currencies(id),
+                FOREIGN KEY(target_currency_id) REFERENCES currencies(id)
+                );""")
+
+                cursor.execute(
+                    """CREATE UNIQUE INDEX IF NOT EXISTS base_target_idx on exchange_rates(base_currency_id, target_currency_id);""")
+
+                conn.commit()
+        except Exception as e:
+            logger.error(msg=f"Error while initializing database: {e}")

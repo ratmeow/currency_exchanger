@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: nginx
+    container_name: frontend-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+  backend:
+    container_name: backend-fastapi
+    build: .
+    ports:
+      - "8000:8000"
+
