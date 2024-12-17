@@ -1,25 +1,18 @@
 from fastapi.testclient import TestClient
+
 from src.app import app
 
 client = TestClient(app)
 
 
 def test_add_exchange_rate_unique_error():
-    payload = {
-        "baseCurrencyCode": "USD",
-        "targetCurrencyCode": "EUR",
-        "rate": 0.92
-    }
+    payload = {"baseCurrencyCode": "USD", "targetCurrencyCode": "EUR", "rate": 0.92}
     response = client.post("/exchangeRates", data=payload)
     assert response.status_code == 409
 
 
 def test_add_exchange_rate_not_found_error():
-    payload = {
-        "baseCurrencyCode": "XXX",
-        "targetCurrencyCode": "YYY",
-        "rate": 0.92
-    }
+    payload = {"baseCurrencyCode": "XXX", "targetCurrencyCode": "YYY", "rate": 0.92}
     response = client.post("/exchangeRates", data=payload)
     assert response.status_code == 404
 
@@ -49,11 +42,7 @@ def test_get_exchange_rate_not_found():
 
 
 def test_calculate_exchange():
-    params = {
-        "from": "USD",
-        "to": "EUR",
-        "amount": 100
-    }
+    params = {"from": "USD", "to": "EUR", "amount": 100}
     response = client.get("/exchange", params=params)
     assert response.status_code == 200
     assert response.json()["baseCurrency"]["code"] == "USD"
@@ -63,11 +52,7 @@ def test_calculate_exchange():
 
 
 def test_calculate_exchange_not_found():
-    params = {
-        "from": "XXX",
-        "to": "YYY",
-        "amount": 100
-    }
+    params = {"from": "XXX", "to": "YYY", "amount": 100}
     response = client.get("/exchange", params=params)
     assert response.status_code == 404  # DatabaseNotFoundError
 

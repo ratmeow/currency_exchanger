@@ -1,5 +1,5 @@
-from .utils import setup_package_logger
 from .settings import AppSettings
+from .utils import setup_package_logger
 
 settings = AppSettings()
 

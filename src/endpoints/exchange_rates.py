@@ -6,8 +6,8 @@ from fastapi import APIRouter, Form, HTTPException, Path, Query
 from src.schemas import (
     AddExchangeRateRequest,
     CalculateExchangeRequest,
+    CalculateExchangeResponse,
     GetExchangeRateResponse,
-    CalculateExchangeResponse
 )
 from src.services import ExchangeRateService
 from src.utils import (
@@ -26,7 +26,7 @@ router = APIRouter(tags=["exchangeRates"])
 
 @router.post("/exchangeRates", status_code=201)
 async def add_exchange_api(
-        exchange_rate: Annotated[AddExchangeRateRequest, Form()],
+    exchange_rate: Annotated[AddExchangeRateRequest, Form()],
 ) -> GetExchangeRateResponse:
     try:
         exchange = ExchangeRateService.add_exchange_service(exchange_data=exchange_rate)
@@ -50,7 +50,7 @@ async def get_all_exchanges_api() -> list[GetExchangeRateResponse]:
 
 @router.get("/exchange", status_code=200)
 async def calculate_exchange_api(
-        exchange_data: Annotated[CalculateExchangeRequest, Query()],
+    exchange_data: Annotated[CalculateExchangeRequest, Query()],
 ) -> CalculateExchangeResponse:
     try:
         return ExchangeRateService.calculate_exchange_service(
@@ -64,7 +64,7 @@ async def calculate_exchange_api(
 
 @router.get("/exchangeRate/{base_target_code}", status_code=200)
 async def get_exchange_api(
-        base_target_code: Annotated[str, Path()],
+    base_target_code: Annotated[str, Path()],
 ) -> GetExchangeRateResponse:
     try:
         FieldValidator.check_combined_code(value=base_target_code, field_name="code")
@@ -87,7 +87,7 @@ async def get_exchange_api(
 
 @router.patch("/exchangeRate/{base_target_code}", status_code=200)
 async def update_exchange_api(
-        base_target_code: Annotated[str, Path()], rate: float = Form()
+    base_target_code: Annotated[str, Path()], rate: float = Form()
 ) -> GetExchangeRateResponse:
     try:
         FieldValidator.check_combined_code(value=base_target_code, field_name="code")

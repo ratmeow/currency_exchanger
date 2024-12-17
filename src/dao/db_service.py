@@ -1,8 +1,8 @@
 import logging
-import sqlite3
-from src import settings
 import os
+import sqlite3
 
+from src import settings
 from src.utils import DatabaseInternalError, UniqueError
 
 logger = logging.getLogger(__name__)
@@ -149,7 +149,7 @@ class DatabaseService:
                 logger.error(e)
                 raise DatabaseInternalError
 
-    def get_exchange(self, base_id: str, target_id: str) -> dict:
+    def get_exchange(self, base_id: int, target_id: int) -> dict:
         with self.__connect() as conn:
             cursor = conn.cursor()
 
@@ -164,7 +164,7 @@ class DatabaseService:
                 logger.error(e)
                 raise DatabaseInternalError
 
-    def update_exchange(self, base_id: str, target_id: str, rate: float) -> dict:
+    def update_exchange(self, base_id: int, target_id: int, rate: float) -> dict:
         with self.__connect() as conn:
             cursor = conn.cursor()
 

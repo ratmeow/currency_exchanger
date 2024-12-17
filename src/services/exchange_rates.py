@@ -24,7 +24,7 @@ class ExchangeRateService:
         )
 
         db_row = db_service.get_exchange(
-            base_id=str(base_currency.id), target_id=str(target_currency.id)
+            base_id=base_currency.id, target_id=target_currency.id
         )
 
         if len(db_row) == 0:

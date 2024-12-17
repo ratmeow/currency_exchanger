@@ -1,7 +1,9 @@
 from fastapi.testclient import TestClient
+
 from src.app import app
 
 client = TestClient(app)
+
 
 def test_get_currencies():
     response = client.get("/currencies")
@@ -26,22 +28,13 @@ def test_get_currency_by_name_validation_error():
 
 
 def test_add_currency():
-    currency_data = {
-        "name": "Russian ruble",
-        "code": "RUB",
-        "sign": "₽"
-    }
+    currency_data = {"name": "Russian ruble", "code": "RUB", "sign": "₽"}
     response = client.post("/currencies", data=currency_data)
     assert response.status_code == 200
     assert response.json()["code"] == "RUB"
 
 
 def test_add_currency_unique_error():
-    currency_data = {
-        "name": "Russian ruble",
-        "code": "RUB",
-        "sign": "₽"
-    }
+    currency_data = {"name": "Russian ruble", "code": "RUB", "sign": "₽"}
     response = client.post("/currencies", data=currency_data)
     assert response.status_code == 409
-
