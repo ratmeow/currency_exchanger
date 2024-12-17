@@ -1,16 +1,17 @@
-import sqlite3
-import os
 import logging
-from src.utils import UniqueError, DatabaseInternalError
+import sqlite3
+from src import settings
+import os
+
+from src.utils import DatabaseInternalError, UniqueError
 
 logger = logging.getLogger(__name__)
 
 
 class DatabaseService:
-
-    def __init__(self, db_name: str):
-        self.db_name = db_name
-        if not os.path.exists(f"src/{db_name}"):
+    def __init__(self):
+        self.db_name = settings.DB_NAME
+        if not os.path.exists(self.db_name) or settings.TEST_MODE:
             self._init_db()
 
     def __connect(self):
@@ -30,7 +31,10 @@ class DatabaseService:
             SELECT * FROM currencies"""
 
             try:
-                result = [dict(row) if row is not None else dict() for row in cursor.execute(query).fetchall()]
+                result = [
+                    dict(row) if row is not None else dict()
+                    for row in cursor.execute(query).fetchall()
+                ]
                 return result
             except Exception as e:
                 logger.error(e)
@@ -121,7 +125,9 @@ class DatabaseService:
                 return dict(result)
             except sqlite3.IntegrityError as e:
                 logger.error(e)
-                raise UniqueError(message="A currency pair with this code already exists")
+                raise UniqueError(
+                    message="A currency pair with this code already exists"
+                )
             except Exception as e:
                 logger.error(e)
                 raise DatabaseInternalError
@@ -134,7 +140,10 @@ class DatabaseService:
             SELECT * FROM exchange_rates"""
 
             try:
-                result = [dict(row) if row is not None else dict() for row in cursor.execute(query).fetchall()]
+                result = [
+                    dict(row) if row is not None else dict()
+                    for row in cursor.execute(query).fetchall()
+                ]
                 return result
             except Exception as e:
                 logger.error(e)
@@ -174,33 +183,14 @@ class DatabaseService:
                 raise DatabaseInternalError
 
     def _init_db(self):
+        logger.info("Initializing database....")
         try:
             with sqlite3.connect(self.db_name) as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("""PRAGMA foreign_keys = ON;""")
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS currencies (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                code VARCHAR,
-                full_name VARCHAR,
-                sign VARCHAR);""")
-
-                cursor.execute("""CREATE UNIQUE INDEX IF NOT EXISTS code_idx on currencies(code);""")
-
-                cursor.execute("""
-                CREATE TABLE IF NOT EXISTS exchange_rates (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                base_currency_id INTEGER,
-                target_currency_id INTEGER,
-                rate DECIMAL(6),
-                FOREIGN KEY(base_currency_id) REFERENCES currencies(id),
-                FOREIGN KEY(target_currency_id) REFERENCES currencies(id)
-                );""")
-
-                cursor.execute(
-                    """CREATE UNIQUE INDEX IF NOT EXISTS base_target_idx on exchange_rates(base_currency_id, target_currency_id);""")
+                with open(settings.SCHEMA_PATH, "r") as f:
+                    sql_script = f.read()
+                    cursor.executescript(sql_script)
 
                 conn.commit()
         except Exception as e:

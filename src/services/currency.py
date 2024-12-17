@@ -1,13 +1,13 @@
-from src.dao import db_service
-from src.schemas import Currency, AddCurrencyRequest
 import logging
+
+from src.dao import db_service
+from src.schemas import AddCurrencyRequest, Currency
 from src.utils import DatabaseNotFoundError
 
 logger = logging.getLogger(__name__)
 
 
 class CurrencyService:
-
     @classmethod
     def get_currencies_service(cls) -> list[Currency]:
         db_rows = db_service.get_currencies()

@@ -1,5 +1,6 @@
+from typing import Any, Union
+
 from .exceptions import ServiceValidationError
-from typing import Union, Any
 
 
 class FieldValidator:
@@ -11,12 +12,16 @@ class FieldValidator:
     @staticmethod
     def check_field_only_letters(value: str, field_name: str):
         if not all(list(map(str.isalpha, value.split(" ")))):
-            raise ServiceValidationError(message=f"{field_name} [{value}] has extra characters or digits")
+            raise ServiceValidationError(
+                message=f"{field_name} [{value}] has extra characters or digits"
+            )
 
     @staticmethod
     def check_length_match(value: str, length: int, field_name: str):
         if len(value) != length:
-            raise ServiceValidationError(message=f"{field_name} [{value}] must be {length} characters long")
+            raise ServiceValidationError(
+                message=f"{field_name} [{value}] must be {length} characters long"
+            )
 
     @staticmethod
     def check_field_not_negative(value: Union[int, float], field_name: str):

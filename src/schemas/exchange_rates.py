@@ -1,7 +1,10 @@
-from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
-from .currency import Currency
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from src.utils import FieldValidator
+
+from .currency import Currency
 
 
 class ExchangeRate(BaseModel):

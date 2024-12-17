@@ -1,9 +1,17 @@
-from fastapi import APIRouter, HTTPException, Form
-from typing import Annotated
-from src.utils import DatabaseNotFoundError, DatabaseInternalError, UniqueError, ServiceValidationError, FieldValidator
-from src.services import CurrencyService
-from src.schemas import AddCurrencyRequest, Currency
 import logging
+from typing import Annotated
+
+from fastapi import APIRouter, Form, HTTPException
+
+from src.schemas import AddCurrencyRequest, Currency
+from src.services import CurrencyService
+from src.utils import (
+    DatabaseInternalError,
+    DatabaseNotFoundError,
+    FieldValidator,
+    ServiceValidationError,
+    UniqueError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +42,9 @@ async def get_currency_by_name_api(name: str) -> Currency:
 
 
 @router.post("/currencies", status_code=200)
-async def add_currency_api(currency_data: Annotated[AddCurrencyRequest, Form()]) -> Currency:
+async def add_currency_api(
+    currency_data: Annotated[AddCurrencyRequest, Form()],
+) -> Currency:
     try:
         currency = CurrencyService.add_currency_service(currency=currency_data)
         return currency
