@@ -84,7 +84,7 @@ class DatabaseService:
             SELECT * FROM currencies WHERE full_name = ?;"""
 
             try:
-                result = cursor.execute(query, (name, )).fetchone()
+                result = cursor.execute(query, (name,)).fetchone()
 
                 if result is None:
                     result = dict()

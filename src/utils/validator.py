@@ -39,3 +39,8 @@ class FieldValidator:
     def check_combined_code(cls, value: str, field_name: str):
         cls.check_length_match(value=value, field_name=field_name, length=6)
         cls.check_field_only_letters(value=value, field_name=field_name)
+
+    @staticmethod
+    def check_string_codes_not_equal(value1: str, value2: str):
+        if value1 == value2:
+            raise ServiceValidationError(message=f"Codes must be different")

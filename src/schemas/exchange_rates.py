@@ -1,6 +1,7 @@
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from typing_extensions import Self
 
 from src.utils import FieldValidator
 
@@ -29,6 +30,13 @@ class AddExchangeRateRequest(BaseModel):
     def validate_rate(cls, value: float) -> float:
         FieldValidator.check_field_not_negative(value=value, field_name="rate")
         return value
+
+    @model_validator(mode="after")
+    def validate_codes_not_equal(self) -> Self:
+        FieldValidator.check_string_codes_not_equal(
+            value1=self.base_currency_code, value2=self.target_currency_code
+        )
+        return self
 
 
 class GetExchangeRateResponse(BaseModel):
