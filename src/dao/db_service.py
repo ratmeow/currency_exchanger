@@ -63,10 +63,10 @@ class DatabaseService:
             cursor = conn.cursor()
 
             query = f"""
-            SELECT * FROM currencies WHERE id = '{id_}';"""
+            SELECT * FROM currencies WHERE id = ?;"""
 
             try:
-                result = cursor.execute(query).fetchone()
+                result = cursor.execute(query, (id_,)).fetchone()
 
                 if result is None:
                     result = dict()
@@ -81,10 +81,10 @@ class DatabaseService:
             cursor = conn.cursor()
 
             query = f"""
-            SELECT * FROM currencies WHERE full_name = '{name}';"""
+            SELECT * FROM currencies WHERE full_name = ?;"""
 
             try:
-                result = cursor.execute(query).fetchone()
+                result = cursor.execute(query, (name, )).fetchone()
 
                 if result is None:
                     result = dict()
@@ -99,10 +99,10 @@ class DatabaseService:
             cursor = conn.cursor()
 
             query = f"""
-            SELECT * FROM currencies WHERE code = '{code}';"""
+            SELECT * FROM currencies WHERE code = ?;"""
 
             try:
-                result = cursor.execute(query).fetchone()
+                result = cursor.execute(query, (code,)).fetchone()
 
                 if result is None:
                     result = dict()
@@ -155,10 +155,10 @@ class DatabaseService:
 
             query = f"""
             SELECT * FROM exchange_rates 
-            WHERE base_currency_id = '{base_id}' AND target_currency_id = '{target_id}';"""
+            WHERE base_currency_id = ? AND target_currency_id = ?;"""
 
             try:
-                result = cursor.execute(query).fetchone()
+                result = cursor.execute(query, (base_id, target_id)).fetchone()
                 return dict(result) if result is not None else dict()
             except Exception as e:
                 logger.error(e)
@@ -170,12 +170,12 @@ class DatabaseService:
 
             query = f"""
             UPDATE exchange_rates 
-            SET rate = {rate}
-            WHERE base_currency_id = '{base_id}' AND target_currency_id = '{target_id}'
+            SET rate = ?
+            WHERE base_currency_id = ? AND target_currency_id = ?
             RETURNING *;"""
 
             try:
-                result = cursor.execute(query).fetchone()
+                result = cursor.execute(query, (rate, base_id, target_id)).fetchone()
                 conn.commit()
                 return dict(result) if result is not None else dict()
             except Exception as e:
