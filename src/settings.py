@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class AppSettings(BaseSettings):
     TEST_MODE: bool = False
-    DB_NAME: str = "database.db"
+    DB_NAME: str = "src/data/database.db"
     SCHEMA_PATH: str = "src/data/schema.sql"
 
     def __init__(self, **kwargs):
